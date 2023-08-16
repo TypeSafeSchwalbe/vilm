@@ -4,8 +4,10 @@
         <title>Vilm</title>
         <script src="vilm.js"></script>
         <script>
-            const vilm = new Vilm();
-            vilm.eval(`display "Hello, world!"`, "test.vl");
+            new Vilm().evalFiles(
+                "foo.vl",
+                "bar.vl"
+            );
         </script>
     </head>
     <body>

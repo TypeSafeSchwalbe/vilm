@@ -158,6 +158,7 @@ const Vilm = (() => {
     class Vilm {
 
         constructor() {
+            this.fileQueue = [];
             this.packages = new Map();
             this.currentPackage = this._getPackage("");
 
@@ -992,6 +993,30 @@ const Vilm = (() => {
 
             this.currentPackage = this._getPackage("");
             return this._executeBlock(baseScope, [Signal.Return]);
+        }
+
+        evalFiles(...files) {
+            for(const file of files) {
+                const queued = {
+                    name: file,
+                    content: null
+                };
+                this.fileQueue.push(queued);
+                fetch(file)
+                    .then((request) => request.text())
+                    .then((content) => {
+                        queued.content = content;
+                        if(this.fileQueue[0] === queued) {
+                            while(this.fileQueue.length > 0 && this.fileQueue[0].content !== null) {
+                                const queuedFile = this.fileQueue.shift();
+                                this.eval(queuedFile.content, queuedFile.name);
+                            }
+                        } else {
+                            console.log("loaded too quickly!");
+                        }
+                    });
+            }
+            return this;
         }
 
     }
