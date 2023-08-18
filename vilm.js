@@ -19,7 +19,7 @@ const Vilm = (() => {
             const startLine = source.file.content.slice(0, source.start).split("\n").length - 1;
             const endLine = source.file.content.slice(0, source.end).split("\n").length - 1;
             const inText = `―[in '${source.file.name}' on line ${startLine + 1}]―――――――――――――――――――――`;
-            output += "\n" + inText;
+            output += "\n" + inText + "\n";
             let line = 0;
             let lineMarkings = "";
             const MARKING = '^';
