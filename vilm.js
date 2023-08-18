@@ -36,6 +36,7 @@ const Vilm = (() => {
                     }
                 }
             }
+            if(lineMarkings.includes(MARKING)) { output += "\n" + lineMarkings; }
             output += "\n" + "―".repeat(inText.length);
         }
         return output;
@@ -986,6 +987,9 @@ const Vilm = (() => {
                         let currentScopeInfo = scopeInfo;
                         while(currentScopeInfo.variables[name] === undefined && currentScopeInfo.parentScope !== null) {
                             currentScopeInfo = currentScopeInfo.parentScope;
+                        }
+                        if(currentScopeInfo.variables[name] === undefined) {
+                            throwError(`there is no variable with the name '${name}' accessible from the current scope`, scopeInfo.tokens[scopeInfo.index - 1]);
                         }
                         return currentScopeInfo.variables[name];
                     }
