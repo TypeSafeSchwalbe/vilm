@@ -198,7 +198,6 @@ const Vilm = (() => {
                 const isNew = !this.packages.has(name[0].content);
                 this.currentPackage = this._getPackage(name[0].content);
                 if(isNew) { this._includeBase(); }
-                return null;
             });
             this._addCoreMacro("useall", 1, (scopeInfo, packageName) => {
                 if(packageName.length !== 1 || packageName[0].type !== TokenType.Other) {
@@ -212,7 +211,6 @@ const Vilm = (() => {
                 for(const name of importPackage.jsFunctions.keys()) { this.currentPackage.jsFunctions.set(name, importPackage.jsFunctions.get(name)); }
                 for(const name of importPackage.macros.keys()) { this.currentPackage.macros.set(name, importPackage.macros.get(name)); }
                 for(const name of importPackage.functions.keys()) { this.currentPackage.functions.set(name, importPackage.functions.get(name)); }
-                return null;
             });
             this._addCoreMacro("use", 2, (scopeInfo, packageName, name) => {
                 if(packageName.length !== 1 || packageName[0].type !== TokenType.Other) {
@@ -240,7 +238,6 @@ const Vilm = (() => {
                         throwError(`the package '${packageName[0].content}' does not contain a function or macro called '${name[0].content}'`, name);
                     }
                 }
-                return null;
             });
 
             this._addCoreMacro("macro", 3, (scopeInfo, name, argNames, body) => {
@@ -259,7 +256,6 @@ const Vilm = (() => {
                 });
                 if(body[0].type === TokenType.ParenOpen) { body = body.slice(1, body.length - 1); }
                 this._addMacro(name[0].content, argNamesParsed, body, scopeInfo);
-                return null;
             });
             this._addCoreMacro("func", 3, (scopeInfo, name, argNames, body) => {
                 if(name.length !== 1 || name[0].type !== TokenType.Other) {
@@ -277,7 +273,6 @@ const Vilm = (() => {
                 });
                 if(body[0].type === TokenType.ParenOpen) { body = body.slice(1, body.length - 1); }
                 this._addFunction(name[0].content, argNamesParsed, body, scopeInfo);
-                return null;
             });
             this._addCoreMacro("vfunc", 2, (scopeInfo, name, body) => {
                 if(name.length !== 1 || name[0].type !== TokenType.Other) {
@@ -292,10 +287,9 @@ const Vilm = (() => {
                 if(evalScopeInfo.signal !== Signal.None) {
                     scopeInfo.signal = evalScopeInfo.signal;
                     scopeInfo.returned = evalScopeInfo.returned;
-                    return null;
+                    return;
                 }
                 this._addJsFunction(name[0].content, jsFunction.length, jsFunction);
-                return null;
             });
             this._addCoreMacro("lambda", 2, (scopeInfo, argNames, body) => {
                 let argNamesParsed = this._parseTokenArray(argNames);
@@ -329,7 +323,7 @@ const Vilm = (() => {
                 if(evalScopeInfo.signal !== Signal.None) {
                     scopeInfo.signal = evalScopeInfo.signal;
                     scopeInfo.returned = evalScopeInfo.returned;
-                    return null;
+                    return;
                 }
                 scopeInfo.lastIfCondition = conditionVal;
                 if(conditionVal) {
@@ -342,7 +336,6 @@ const Vilm = (() => {
                         scopeInfo.returned = bodyScopeInfo.returned;
                     }
                 }
-                return null;
             });
             this._addCoreMacro("else", 1, (scopeInfo, body) => {
                 if(scopeInfo.lastIfCondition === undefined) {
@@ -371,15 +364,12 @@ const Vilm = (() => {
                     if(loopScopeInfo.signal === Signal.Return || loopScopeInfo.signal === Signal.Break) {
                         scopeInfo.signal = loopScopeInfo.signal;
                         scopeInfo.returned = loopScopeInfo.returned;
-                        return null;
+                        return;
                     }
                 }
-                return null;
             });
             this._addCoreMacro("while", 2, (scopeInfo, condition, body) => {
                 if(body[0].type === TokenType.ParenOpen) { body = body.slice(1, body.length - 1); }
-                const loopScopeInfo = new ScopeInfo(scopeInfo);
-                loopScopeInfo.tokens = body;
                 while(true) {
                     {
                         const evalScopeInfo = new ScopeInfo(scopeInfo);
@@ -388,20 +378,44 @@ const Vilm = (() => {
                         if(evalScopeInfo.signal !== Signal.None) {
                             scopeInfo.signal = evalScopeInfo.signal;
                             scopeInfo.returned = evalScopeInfo.returned;
-                            return null;
+                            return;
                         }
                         if(!conditionVal) { break; }
                     }
-                    loopScopeInfo.index = 0;
-                    loopScopeInfo.signal = Signal.None;
+                    const loopScopeInfo = new ScopeInfo(scopeInfo);
+                    loopScopeInfo.tokens = body;
                     this._executeBlock(loopScopeInfo, [Signal.Break, Signal.Continue, Signal.Return]);
                     if(loopScopeInfo.signal === Signal.Return || loopScopeInfo.signal === Signal.Break) {
                         scopeInfo.signal = loopScopeInfo.signal;
                         scopeInfo.returned = loopScopeInfo.returned;
-                        return null;
+                        return;
                     }
                 }
-                return null;
+            });
+            this._addCoreMacro("for", 3, (scopeInfo, varName, iterable, body) => {
+                if(varName.length !== 1 || varName[0].type !== TokenType.Other) {
+                    throwError("the provided loop variable name is not an identifier", varName);
+                }
+                if(body[0].type === TokenType.ParenOpen) { body = body.slice(1, body.length - 1); }
+                const iterableScopeInfo = new ScopeInfo(scopeInfo);
+                iterableScopeInfo.tokens = iterable;
+                const iterableValue = this._executeTokens(iterableScopeInfo);
+                if(iterableScopeInfo.signal !== Signal.None) {
+                    scopeInfo.signal = iterableScopeInfoScopeInfo.signal;
+                    scopeInfo.returned = iterableScopeInfo.returned;
+                    return;
+                }
+                for(const iterationValue of iterableValue) {
+                    const loopScopeInfo = new ScopeInfo(scopeInfo);
+                    loopScopeInfo.tokens = body;
+                    loopScopeInfo.variables[varName[0].content] = iterationValue;
+                    this._executeBlock(loopScopeInfo, [Signal.Break, Signal.Continue, Signal.Return]);
+                    if(loopScopeInfo.signal === Signal.Return || loopScopeInfo.signal === Signal.Break) {
+                        scopeInfo.signal = loopScopeInfo.signal;
+                        scopeInfo.returned = loopScopeInfo.returned;
+                        return;
+                    }
+                }
             });
 
             this._addCoreMacro("return", 1, (scopeInfo, value) => {
@@ -413,11 +427,20 @@ const Vilm = (() => {
             });
             this._addCoreMacro("continue", 0, (scopeInfo) => {
                 scopeInfo.signal = Signal.Continue;
-                return null;
             });
             this._addCoreMacro("break", 0, (scopeInfo) => {
                 scopeInfo.signal = Signal.Break;
-                return null;
+            });
+
+            this._addJsFunction("range", 2, (start, end) => {
+                let r = new Array(Math.max(start, end) - Math.min(start, end));
+                let n = start;
+                for(let i = 0; i < r.length; i += 1) {
+                    r[i] = n;
+                    if(n < end) { n += 1; }
+                    else if(n > end) { n -= 1; }
+                }
+                return r;
             });
 
             this._addJsFunction("eval", 1, (tokens) => {
@@ -438,7 +461,6 @@ const Vilm = (() => {
                     scopeInfo.signal = evalScopeInfo.signal;
                     scopeInfo.returned = evalScopeInfo.returned;
                 }
-                return null;
             });
             this._addCoreMacro("set", 2, (scopeInfo, name, value) => {
                 if(name.length !== 1 || name[0].type !== TokenType.Other) {
@@ -446,7 +468,9 @@ const Vilm = (() => {
                 }
                 let currentScopeInfo = scopeInfo;
                 while(currentScopeInfo.variables[name[0].content] === undefined) {
-                    if(currentScopeInfo.parentScope === null) { return null; }
+                    if(currentScopeInfo.parentScope === null) {
+                        throwError(`there is no variable with the name '${name[0].content}' accessible from the current scope`, name);
+                    }
                     currentScopeInfo = currentScopeInfo.parentScope;
                 }
                 const evalScopeInfo = new ScopeInfo(scopeInfo);
@@ -456,7 +480,6 @@ const Vilm = (() => {
                     scopeInfo.signal = evalScopeInfo.signal;
                     scopeInfo.returned = evalScopeInfo.returned;
                 }
-                return null;
             });
 
             this._addJsFunction("js", 1, (jsText) => eval(jsText));
@@ -486,7 +509,6 @@ const Vilm = (() => {
                     return instance;
                 };
                 this._addJsFunction(name[0].content, memberNamesParsed.length, recordConstructor);
-                return null;
             });
 
 
