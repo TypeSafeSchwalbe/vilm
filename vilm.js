@@ -36,7 +36,7 @@ const Vilm = (() => {
                     }
                 }
             }
-            if(lineMarkings.includes(MARKING)) { output += "\n" + lineMarkings; }
+        if(lineMarkings.includes(MARKING)) { output += "\n" + lineMarkings; }
             output += "\n" + "―".repeat(inText.length);
         }
         return output;
@@ -290,7 +290,7 @@ const Vilm = (() => {
                     scopeInfo.returned = evalScopeInfo.returned;
                     return;
                 }
-                this._addJsFunction(name[0].content, jsFunction.length, jsFunction);
+                this._addJsFunction(name[0].content, typeof jsFunction._vilmLambdaArgCount === "number"? jsFunction._vilmLambdaArgCount : jsFunction.length, jsFunction);
             });
             this._addCoreMacro("lambda", 2, (scopeInfo, argNames, body) => {
                 let argNamesParsed = this._parseTokenArray(argNames);
@@ -304,7 +304,7 @@ const Vilm = (() => {
                     return name[0].content;
                 });
                 if(body[0].type === TokenType.ParenOpen) { body = body.slice(1, body.length - 1); }
-                return (...argValues) => {
+                const returned = (...argValues) => {
                     if(argValues.length !== argNamesParsed.length) {
                         throwError(`lambda takes ${argNamesParsed.length} parameters, but ${argValues.length} were provided`, argNames);
                     }
@@ -315,6 +315,8 @@ const Vilm = (() => {
                     }
                     return this._executeBlock(bodyScopeInfo, [Signal.Return]);
                 };
+                returned._vilmLambdaArgCount = argNamesParsed.length;
+                return returned;
             });
 
             this._addCoreMacro("if", 2, (scopeInfo, condition, body) => {
