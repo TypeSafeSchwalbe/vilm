@@ -447,10 +447,16 @@ const Vilm = (() => {
             });
 
             this._addJsFunction("eval", 1, (tokens) => {
-                const evalScopeInfo = new ScopeInfo(tokens.scopeInfo);
+                if(tokens.length === 0) { return; }
+                const oldPackage = this.currentPackage;
+                const newPackage = tokens[0].scopeInfo.package;
+                if(newPackage) { this.currentPackage = newPackage; }
+                const evalScopeInfo = new ScopeInfo(tokens[0].scopeInfo);
                 if(tokens[0].type === TokenType.ParenOpen) { tokens = tokens.slice(1, tokens.length - 1); }
                 evalScopeInfo.tokens = tokens;
-                return this._executeBlock(evalScopeInfo, []);
+                const returned = this._executeBlock(evalScopeInfo, []);
+                this.currentPackage = oldPackage;
+                return returned;
             });
 
             this._addCoreMacro("var", 2, (scopeInfo, name, value) => {
@@ -865,17 +871,19 @@ const Vilm = (() => {
                     if(this.currentPackage.coreMacros.has(name)) {
                         const coreMacro = this.currentPackage.coreMacros.get(name);
                         const args = [];
-                        {
-                            const arg = scopeInfo.tokens.slice(firstParamStartIndex, firstParamEndIndex);
-                            arg.scopeInfo = scopeInfo;
-                            args.push(arg);
-                        }
+                        args.push(scopeInfo.tokens.slice(firstParamStartIndex, firstParamEndIndex).map((t) => {
+                            t.scopeInfo = scopeInfo;
+                            t.scopeInfo.package = this.currentPackage;
+                            return t;
+                        }));
                         for(let argIndex = 1; argIndex < coreMacro.argCount; argIndex += 1) {
                             const startIndex = scopeInfo.index;
                             scopeInfo.index = this._calculateExprLength(scopeInfo.tokens, scopeInfo.index);
-                            const arg = scopeInfo.tokens.slice(startIndex, scopeInfo.index);
-                            arg.scopeInfo = scopeInfo;
-                            args.push(arg);
+                            args.push(scopeInfo.tokens.slice(startIndex, scopeInfo.index).map((t) => {
+                                t.scopeInfo = scopeInfo;
+                                t.scopeInfo.package = this.currentPackage;
+                                return t;
+                            }));
                         }
                         resultVal = coreMacro.handler(scopeInfo, ...args);
                     } else if(this.currentPackage.jsFunctions.has(name)) {
@@ -895,17 +903,19 @@ const Vilm = (() => {
                         const macro = this.currentPackage.macros.get(name);
                         const macroScopeInfo = new ScopeInfo(macro.parentScope);
                         macroScopeInfo.tokens = macro.body;
-                        {
-                            const arg = scopeInfo.tokens.slice(firstParamStartIndex, firstParamEndIndex);
-                            arg.scopeInfo = scopeInfo;
-                            macroScopeInfo.variables[macro.argNames[0]] = arg;
-                        }
+                        macroScopeInfo.variables[macro.argNames[0]] = scopeInfo.tokens.slice(firstParamStartIndex, firstParamEndIndex).map((t) => {
+                            t.scopeInfo = scopeInfo;
+                            t.scopeInfo.package = this.currentPackage;
+                            return t;
+                        });
                         for(let argIndex = 1; argIndex < macro.argNames.length; argIndex += 1) {
                             const startIndex = scopeInfo.index;
                             scopeInfo.index = this._calculateExprLength(scopeInfo.tokens, scopeInfo.index);
-                            const arg = scopeInfo.tokens.slice(startIndex, scopeInfo.index);
-                            arg.scopeInfo = scopeInfo;
-                            macroScopeInfo.variables[macro.argNames[argIndex]] = arg;
+                            macroScopeInfo.variables[macro.argNames[argIndex]] = scopeInfo.tokens.slice(startIndex, scopeInfo.index).map((t) => {
+                                t.scopeInfo = scopeInfo;
+                                t.scopeInfo.package = this.currentPackage;
+                                return t;
+                            });
                         }
                         const oldPackage = this.currentPackage;
                         this.currentPackage = macro.declaredIn;
@@ -946,9 +956,11 @@ const Vilm = (() => {
                         for(let argIndex = 0; argIndex < coreMacro.argCount; argIndex += 1) {
                             const startIndex = scopeInfo.index;
                             scopeInfo.index = this._calculateExprLength(scopeInfo.tokens, scopeInfo.index);
-                            const arg = scopeInfo.tokens.slice(startIndex, scopeInfo.index);
-                            arg.scopeInfo = scopeInfo;
-                            args.push(arg);
+                            args.push(scopeInfo.tokens.slice(startIndex, scopeInfo.index).map((t) => {
+                                t.scopeInfo = scopeInfo;
+                                t.scopeInfo.package = this.currentPackage;
+                                return t;
+                            }));
                         }
                         return coreMacro.handler(scopeInfo, ...args);
                     } else if(this.currentPackage.jsFunctions.has(name)) {
@@ -965,9 +977,11 @@ const Vilm = (() => {
                         for(let argIndex = 0; argIndex < macro.argNames.length; argIndex += 1) {
                             const startIndex = scopeInfo.index;
                             scopeInfo.index = this._calculateExprLength(scopeInfo.tokens, scopeInfo.index);
-                            const arg = scopeInfo.tokens.slice(startIndex, scopeInfo.index);
-                            arg.scopeInfo = scopeInfo;
-                            macroScopeInfo.variables[macro.argNames[argIndex]] = arg;
+                            macroScopeInfo.variables[macro.argNames[argIndex]] = scopeInfo.tokens.slice(startIndex, scopeInfo.index).map((t) => {
+                                t.scopeInfo = scopeInfo;
+                                t.scopeInfo.package = this.currentPackage;
+                                return t;
+                            });
                         }
                         const oldPackage = this.currentPackage;
                         this.currentPackage = macro.declaredIn;
