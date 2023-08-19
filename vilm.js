@@ -487,6 +487,8 @@ const Vilm = (() => {
 
             this._addJsFunction("js", 1, (jsText) => eval(jsText));
 
+            this._addJsFunction("format", 2, (formatString, inserted) => formatString.replaceAll(/(?<!{){(?!{)(.*?)(?<!})}(?!})/gs, (m, k) => inserted[k]).replaceAll("{{", "{").replaceAll("}}", "}"));
+
             this._addCoreMacro("record", 2, (scopeInfo, name, memberNames) => {
                 if(name.length !== 1 || name[0].type !== TokenType.Other) {
                     throwError("the provided record name is not an identifier", name);
@@ -513,7 +515,6 @@ const Vilm = (() => {
                 };
                 this._addJsFunction(name[0].content, memberNamesParsed.length, recordConstructor);
             });
-
 
             this.eval(`
                 vfunc display js "(msg) => console.log(msg)"
