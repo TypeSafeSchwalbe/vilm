@@ -750,6 +750,31 @@ const Vilm = (() => {
                 func float_in(min max) {{random * {max - min}} + min}
                 func integer_in(min max) floor float_in min max
             `, "random.vl");
+
+            this.eval(`
+                pkg ref
+
+                record Ref(scope var_name)
+            
+                macro &(var_name) (
+                    assert {getm var_name "length" == 1}
+                    return Ref
+                        getm getm getm var_name 0 "scopeInfo" "variables"
+                        getm getm var_name 0 "content"
+                )
+            
+                func setr(refv value) (
+                    assert is_object refv
+                    assert is_object getm refv "scope"
+                    setm getm refv "scope" getm refv "var_name" value
+                )
+            
+                func getr(refv) (
+                    assert is_object refv
+                    assert is_object getm refv "scope"
+                    return getm getm refv "scope" getm refv "var_name"
+                )
+            `, "ref.vl");
         }
 
         _parseTokenArray(tokens) {
