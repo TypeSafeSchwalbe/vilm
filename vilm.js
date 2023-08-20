@@ -319,6 +319,7 @@ const Vilm = (() => {
                 return returned;
             });
 
+            let lastIfCondition = true;            
             this._addCoreMacro("if", 2, (scopeInfo, condition, body) => {
                 const evalScopeInfo = new ScopeInfo(scopeInfo);
                 evalScopeInfo.tokens = condition;
@@ -328,7 +329,7 @@ const Vilm = (() => {
                     scopeInfo.returned = evalScopeInfo.returned;
                     return;
                 }
-                scopeInfo.lastIfCondition = conditionVal;
+                lastIfCondition = conditionVal;
                 if(conditionVal) {
                     if(body[0].type === TokenType.ParenOpen) { body = body.slice(1, body.length - 1); }
                     const bodyScopeInfo = new ScopeInfo(scopeInfo);
@@ -341,10 +342,7 @@ const Vilm = (() => {
                 }
             });
             this._addCoreMacro("else", 1, (scopeInfo, body) => {
-                if(scopeInfo.lastIfCondition === undefined) {
-                    throwError("'else' called without a prior call to 'if' in the same scope", body);
-                }
-                if(!scopeInfo.lastIfCondition) {
+                if(!lastIfCondition) {
                     if(body[0].type === TokenType.ParenOpen) { body = body.slice(1, body.length - 1); }
                     const bodyScopeInfo = new ScopeInfo(scopeInfo);
                     bodyScopeInfo.tokens = body;
