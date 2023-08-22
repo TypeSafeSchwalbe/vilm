@@ -450,7 +450,6 @@ const Vilm = (() => {
                 const newPackage = tokens[0].scopeInfo.package;
                 if(newPackage) { this.currentPackage = newPackage; }
                 const evalScopeInfo = new ScopeInfo(tokens[0].scopeInfo);
-                if(tokens[0].type === TokenType.ParenOpen) { tokens = tokens.slice(1, tokens.length - 1); }
                 evalScopeInfo.tokens = tokens;
                 const returned = this._executeBlock(evalScopeInfo, []);
                 this.currentPackage = oldPackage;
@@ -1003,7 +1002,7 @@ const Vilm = (() => {
                         while(currentScopeInfo.variables[name] === undefined && currentScopeInfo.parentScope !== null) {
                             currentScopeInfo = currentScopeInfo.parentScope;
                         }
-                        if(currentScopeInfo.variables[name] === undefined) {
+                        if(currentScopeInfo.variables[name] === undefined && !Object.keys(currentScopeInfo.variables).includes(name)) {
                             throwError(`there is no variable with the name '${name}' accessible from the current scope`, scopeInfo.tokens[scopeInfo.index - 1]);
                         }
                         return currentScopeInfo.variables[name];
