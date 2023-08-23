@@ -1051,8 +1051,6 @@ const Vilm = (() => {
                                 const queuedFile = this.fileQueue.shift();
                                 this.eval(queuedFile.content, queuedFile.name);
                             }
-                        } else {
-                            console.log("loaded too quickly!");
                         }
                     });
             }
